@@ -1,0 +1,30 @@
+node{
+stage('SCM Checkout')
+{
+git 'https://github.com/javahometech/my-app'
+}
+    stage('Mvn Package')
+{
+sh 'mvn clean package'
+}
+stage('Build Docker Image')
+{
+sh 'docker build -t sujay123/my-app:2.0.0 .'   
+    
+}
+stage('push Docker Image')
+{
+withCredentials([string(credentialsId: 'sujay123', variable: 'docker_pw')]) {
+sh "docker login -u sujay123 -p ${docker_pw}"
+sh 'docker push sujay123/my-app:2.0.0'
+}
+}
+
+stage('docker deployment over ssh')
+{
+    def ifconf= 'sudo docker run -p 8080:8080 -d --name docker_container sujay123/my-app:2.0.0'
+sshagent(['SSH_Cred']) {
+   sh "ssh -o StrictHostKeyChecking=no ec2-user@172.31.80.36 ${ifconf}" 
+   }
+}
+}
